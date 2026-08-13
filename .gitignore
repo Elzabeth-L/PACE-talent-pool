@@ -1,0 +1,13 @@
+.env
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+goal.md
