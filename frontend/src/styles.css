@@ -48,15 +48,26 @@ h1, h2, h3, p { margin-top: 0; }
 .primary-button { width: 100%; height: 40px; border: 0; border-radius: 5px; background: var(--teal); color: #fff; font-weight: 750; box-shadow: 0 4px 10px #087e8b24; }
 .primary-button:disabled { background: #b6c3c3; box-shadow: none; cursor: not-allowed; }
 .primary-button:not(:disabled):hover { background: #066c77; }
-.multi-select { width: 100%; min-width: 0; }
+.multi-select { width: 100%; min-width: 0; position: relative; }
 .multi-select-label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 750; color: #3e4d59; margin-bottom: 7px; }
 .multi-select-label small { font-size: 9px; color: var(--teal); font-weight: 750; text-transform: uppercase; letter-spacing: .06em; }
-.multi-placeholder { height: 40px; display: flex; align-items: center; padding: 0 10px; border: 1px solid #d8dfdd; border-radius: 5px; background: #f0f3f2; color: #99a4aa; font-size: 10px; }
-.skill-options { max-height: 155px; overflow-y: auto; overflow-x: hidden; border: 1px solid #ccd7d4; border-radius: 5px; background: #fff; padding: 4px; }
+.multi-trigger { width: 100%; height: 40px; border: 1px solid #ccd7d4; border-radius: 5px; background: #fff; color: #314552; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; font-size: 10px; }
+.multi-trigger:hover:not(:disabled), .multi-trigger[aria-expanded="true"] { border-color: var(--teal); box-shadow: 0 0 0 3px #087e8b14; }
+.multi-trigger:disabled { background: #f0f3f2; color: #99a4aa; cursor: not-allowed; }
+.multi-trigger i { color: var(--teal); font-size: 17px; font-style: normal; transition: transform .18s ease; }
+.multi-trigger[aria-expanded="true"] i { transform: rotate(180deg); }
+.skill-menu { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px); border: 1px solid #bdd2cf; border-radius: 7px; background: #fff; padding: 7px; box-shadow: 0 14px 32px #10283f2b; animation: menu-in .14s ease-out; }
+.skill-menu-head { min-height: 29px; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 5px; border-bottom: 1px solid #e6ebea; }
+.skill-menu-head span { font-size: 9px; font-weight: 800; color: var(--navy); text-transform: uppercase; letter-spacing: .08em; }
+.skill-menu-head button { border: 0; background: none; color: var(--teal); padding: 3px; font-size: 9px; font-weight: 750; }
+.skill-options { max-height: 168px; overflow-y: auto; overflow-x: hidden; background: #fff; padding: 4px 0; }
 .skill-options label { flex-direction: row; align-items: center; gap: 8px; min-height: 32px; margin: 0; padding: 5px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; cursor: pointer; }
 .skill-options label:hover { background: var(--soft); }
 .skill-options input { flex: 0 0 auto; accent-color: var(--teal); }
 .skill-options span { min-width: 0; overflow-wrap: anywhere; }
+.apply-skills { width: 100%; height: 35px; border: 0; border-radius: 4px; background: var(--teal); color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .02em; box-shadow: 0 3px 9px #087e8b24; }
+.apply-skills:hover { background: #066c77; }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .selected-requirements { width: 100%; min-width: 0; margin-top: 19px; padding-top: 17px; border-top: 1px solid var(--line); }
 .selected-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
 .selected-heading strong { font-size: 11px; color: var(--navy); }

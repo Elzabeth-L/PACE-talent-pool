@@ -40,6 +40,8 @@ function Directory({ onOpen }: { onOpen: (id: string) => void }) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [builderCategoryId, setBuilderCategoryId] = useState<number | null>(null);
+  const [draftSkillIds, setDraftSkillIds] = useState<number[]>([]);
+  const [skillMenuOpen, setSkillMenuOpen] = useState(false);
   const [requirements, setRequirements] = useState<SkillRequirement[]>([]);
   const [mode, setMode] = useState<"all" | "any">("all");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -62,15 +64,27 @@ function Directory({ onOpen }: { onOpen: (id: string) => void }) {
   }, [search, categoryId, requirements, mode]);
 
   const builderCategory = categories.find((category) => category.category_id === builderCategoryId);
-  const toggleSkill = (skillId: number) => {
-    const selected = requirements.some((item) => item.skill.skill_id === skillId);
-    if (selected) {
-      setRequirements((current) => current.filter((item) => item.skill.skill_id !== skillId));
-      return;
-    }
+  const chooseBuilderCategory = (nextCategoryId: number | null) => {
+    setBuilderCategoryId(nextCategoryId);
+    setSkillMenuOpen(false);
+    setDraftSkillIds(requirements.filter((item) => item.skill.category_id === nextCategoryId).map((item) => item.skill.skill_id));
+  };
+  const toggleDraftSkill = (skillId: number) => setDraftSkillIds((current) => current.includes(skillId) ? current.filter((id) => id !== skillId) : [...current, skillId]);
+  const applySkillFilters = () => {
     if (!builderCategory) return;
-    const skill = builderCategory.skills.find((item) => item.skill_id === skillId);
-    if (skill) setRequirements((current) => [...current, { skill, categoryName: builderCategory.category_name, proficiencyRank: null }]);
+    setRequirements((current) => {
+      const existing = new Map(current.map((item) => [item.skill.skill_id, item]));
+      const otherAreas = current.filter((item) => item.skill.category_id !== builderCategory.category_id);
+      const selectedAreaSkills = builderCategory.skills
+        .filter((skill) => draftSkillIds.includes(skill.skill_id))
+        .map((skill) => existing.get(skill.skill_id) ?? { skill, categoryName: builderCategory.category_name, proficiencyRank: null });
+      return [...otherAreas, ...selectedAreaSkills];
+    });
+    setSkillMenuOpen(false);
+  };
+  const removeRequirement = (skillId: number) => {
+    setRequirements((current) => current.filter((item) => item.skill.skill_id !== skillId));
+    setDraftSkillIds((current) => current.filter((id) => id !== skillId));
   };
   const setRequirementRank = (skillId: number, proficiencyRank: number | null) => setRequirements((current) => current.map((item) => item.skill.skill_id === skillId ? { ...item, proficiencyRank } : item));
   const clearAll = () => { setSearch(""); setCategoryId(null); setRequirements([]); setMode("all"); };
@@ -89,17 +103,14 @@ function Directory({ onOpen }: { onOpen: (id: string) => void }) {
           <label>Browse a capability area<select value={categoryId ?? ""} onChange={(event) => setCategoryId(event.target.value ? Number(event.target.value) : null)}><option value="">All capability areas</option>{categories.map((category) => <option value={category.category_id} key={category.category_id}>{category.category_name}</option>)}</select></label>
           <div className="divider" />
           <fieldset><legend>Add a skill filter</legend>
-            <label>Capability area<select value={builderCategoryId ?? ""} onChange={(event) => setBuilderCategoryId(event.target.value ? Number(event.target.value) : null)}><option value="">Choose an area</option>{categories.map((category) => <option value={category.category_id} key={category.category_id}>{category.category_name}</option>)}</select></label>
+            <label>Capability area<select value={builderCategoryId ?? ""} onChange={(event) => chooseBuilderCategory(event.target.value ? Number(event.target.value) : null)}><option value="">Choose an area</option>{categories.map((category) => <option value={category.category_id} key={category.category_id}>{category.category_name}</option>)}</select></label>
             <div className={`multi-select ${builderCategory ? "" : "disabled"}`}>
               <span className="multi-select-label">Skills <small>Select multiple</small></span>
-              {!builderCategory && <div className="multi-placeholder">Choose a capability area first</div>}
-              {builderCategory && <div className="skill-options">{builderCategory.skills.map((skill) => {
-                const checked = requirements.some((item) => item.skill.skill_id === skill.skill_id);
-                return <label key={skill.skill_id}><input type="checkbox" checked={checked} onChange={() => toggleSkill(skill.skill_id)}/><span>{skill.skill_name}</span></label>;
-              })}</div>}
+              <button type="button" className="multi-trigger" disabled={!builderCategory} aria-expanded={skillMenuOpen} onClick={() => setSkillMenuOpen((open) => !open)}><span>{!builderCategory ? "Choose a capability area first" : draftSkillIds.length ? `${draftSkillIds.length} skill${draftSkillIds.length === 1 ? "" : "s"} selected` : "Select skills"}</span><i>⌄</i></button>
+              {builderCategory && skillMenuOpen && <div className="skill-menu"><div className="skill-menu-head"><span>Choose skills</span>{draftSkillIds.length > 0 && <button type="button" onClick={() => setDraftSkillIds([])}>Clear</button>}</div><div className="skill-options">{builderCategory.skills.map((skill) => <label key={skill.skill_id}><input type="checkbox" checked={draftSkillIds.includes(skill.skill_id)} onChange={() => toggleDraftSkill(skill.skill_id)}/><span>{skill.skill_name}</span></label>)}</div><button type="button" className="apply-skills" onClick={applySkillFilters}>{draftSkillIds.length ? `Apply ${draftSkillIds.length} skill filter${draftSkillIds.length === 1 ? "" : "s"}` : "Apply and clear this area"}</button></div>}
             </div>
           </fieldset>
-          {requirements.length > 0 && <section className="selected-requirements"><div className="selected-heading"><strong>Selected skill filters</strong><button onClick={() => setRequirements([])}>Clear skills</button></div>{requirements.map((requirement) => <article key={requirement.skill.skill_id}><div><b>{requirement.skill.skill_name}</b><small>{requirement.categoryName}</small></div><label><span className="sr-only">Proficiency for {requirement.skill.skill_name}</span><select value={requirement.proficiencyRank ?? ""} onChange={(event) => setRequirementRank(requirement.skill.skill_id, event.target.value ? Number(event.target.value) : null)}><option value="">Any proficiency</option>{levels.map((level) => <option value={level.level_rank} key={level.proficiency_id}>{level.level_name}</option>)}</select></label><button className="remove-skill" onClick={() => toggleSkill(requirement.skill.skill_id)} aria-label={`Remove ${requirement.skill.skill_name}`}>×</button></article>)}</section>}
+          {requirements.length > 0 && <section className="selected-requirements"><div className="selected-heading"><strong>Applied skill filters</strong><button onClick={() => { setRequirements([]); setDraftSkillIds([]); }}>Clear skills</button></div>{requirements.map((requirement) => <article key={requirement.skill.skill_id}><div><b>{requirement.skill.skill_name}</b><small>{requirement.categoryName}</small></div><label><span className="sr-only">Proficiency for {requirement.skill.skill_name}</span><select value={requirement.proficiencyRank ?? ""} onChange={(event) => setRequirementRank(requirement.skill.skill_id, event.target.value ? Number(event.target.value) : null)}><option value="">Any proficiency</option>{levels.map((level) => <option value={level.level_rank} key={level.proficiency_id}>{level.level_name}</option>)}</select></label><button className="remove-skill" onClick={() => removeRequirement(requirement.skill.skill_id)} aria-label={`Remove ${requirement.skill.skill_name}`}>×</button></article>)}</section>}
           {requirements.length > 1 && <fieldset className="match-choice"><legend>Candidates should match</legend><label><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/><span><b>Every selected skill</b><small>Best for a specific skill combination</small></span></label><label><input type="radio" checked={mode === "any"} onChange={() => setMode("any")}/><span><b>At least one selected skill</b><small>Best for a broader talent search</small></span></label></fieldset>}
           <div className="filter-note"><strong>Tip</strong><p>Leave proficiency as “Any” to find everyone with exposure to that skill. Their actual level appears in the result row.</p></div>
         </aside>
