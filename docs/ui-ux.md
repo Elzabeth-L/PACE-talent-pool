@@ -22,7 +22,7 @@
 └────────────────┴─────────────────────────────────────────────┘
 ```
 
-The left rail creates skill filters. Category selection limits the skill list. Proficiency is optional: “Any proficiency” means any assessed exposure. When multiple skills are selected, plain-language radio choices explain whether candidates must match every selected skill or at least one. Candidate rows do not display general skill lists; they show only identity and capability focus. While skill filters are active, the matching skills and actual proficiency appear as contextual evidence.
+The left rail creates skill filters. Category selection opens a multi-select checklist, allowing several skills to be checked or unchecked in place. Selected filters remain in the panel, where each proficiency can be changed independently or the skill can be removed. Proficiency is optional: “Any proficiency” means any assessed exposure. When multiple skills are selected, plain-language radio choices explain whether candidates must match every selected skill or at least one. Candidate rows do not display general skill lists; they show only identity and capability focus. While skill filters are active, the matching skills and actual proficiency appear as contextual evidence. The directory header reports context but does not duplicate filter-removal controls.
 
 ## PACE Talent Profile
 

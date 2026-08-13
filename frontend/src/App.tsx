@@ -40,8 +40,6 @@ function Directory({ onOpen }: { onOpen: (id: string) => void }) {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [builderCategoryId, setBuilderCategoryId] = useState<number | null>(null);
-  const [builderSkillId, setBuilderSkillId] = useState<number | null>(null);
-  const [builderRank, setBuilderRank] = useState<number | null>(null);
   const [requirements, setRequirements] = useState<SkillRequirement[]>([]);
   const [mode, setMode] = useState<"all" | "any">("all");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -64,15 +62,17 @@ function Directory({ onOpen }: { onOpen: (id: string) => void }) {
   }, [search, categoryId, requirements, mode]);
 
   const builderCategory = categories.find((category) => category.category_id === builderCategoryId);
-  const selectedSkill = builderCategory?.skills.find((skill) => skill.skill_id === builderSkillId);
-  const levelName = (rank: number | null) => rank === null ? "Any proficiency" : levels.find((level) => level.level_rank === rank)?.level_name ?? "Any proficiency";
-  const addRequirement = () => {
-    if (!builderCategory || !selectedSkill) return;
-    setRequirements((current) => [...current.filter((item) => item.skill.skill_id !== selectedSkill.skill_id), {
-      skill: selectedSkill, categoryName: builderCategory.category_name, proficiencyRank: builderRank,
-    }]);
-    setBuilderSkillId(null); setBuilderRank(null);
+  const toggleSkill = (skillId: number) => {
+    const selected = requirements.some((item) => item.skill.skill_id === skillId);
+    if (selected) {
+      setRequirements((current) => current.filter((item) => item.skill.skill_id !== skillId));
+      return;
+    }
+    if (!builderCategory) return;
+    const skill = builderCategory.skills.find((item) => item.skill_id === skillId);
+    if (skill) setRequirements((current) => [...current, { skill, categoryName: builderCategory.category_name, proficiencyRank: null }]);
   };
+  const setRequirementRank = (skillId: number, proficiencyRank: number | null) => setRequirements((current) => current.map((item) => item.skill.skill_id === skillId ? { ...item, proficiencyRank } : item));
   const clearAll = () => { setSearch(""); setCategoryId(null); setRequirements([]); setMode("all"); };
   const hasFilters = Boolean(search || categoryId || requirements.length);
 
@@ -89,21 +89,23 @@ function Directory({ onOpen }: { onOpen: (id: string) => void }) {
           <label>Browse a capability area<select value={categoryId ?? ""} onChange={(event) => setCategoryId(event.target.value ? Number(event.target.value) : null)}><option value="">All capability areas</option>{categories.map((category) => <option value={category.category_id} key={category.category_id}>{category.category_name}</option>)}</select></label>
           <div className="divider" />
           <fieldset><legend>Add a skill filter</legend>
-            <label>Capability area<select value={builderCategoryId ?? ""} onChange={(event) => { setBuilderCategoryId(event.target.value ? Number(event.target.value) : null); setBuilderSkillId(null); }}><option value="">Choose an area</option>{categories.map((category) => <option value={category.category_id} key={category.category_id}>{category.category_name}</option>)}</select></label>
-            <label>Skill<select disabled={!builderCategory} value={builderSkillId ?? ""} onChange={(event) => setBuilderSkillId(event.target.value ? Number(event.target.value) : null)}><option value="">Choose a skill</option>{builderCategory?.skills.map((skill) => <option value={skill.skill_id} key={skill.skill_id}>{skill.skill_name}</option>)}</select></label>
-            <label>Proficiency <span className="optional">Optional</span><select value={builderRank ?? ""} onChange={(event) => setBuilderRank(event.target.value ? Number(event.target.value) : null)}><option value="">Any proficiency</option>{levels.map((level) => <option value={level.level_rank} key={level.proficiency_id}>{level.level_name}</option>)}</select></label>
-            <button className="primary-button" disabled={!selectedSkill} onClick={addRequirement}>Add skill filter</button>
+            <label>Capability area<select value={builderCategoryId ?? ""} onChange={(event) => setBuilderCategoryId(event.target.value ? Number(event.target.value) : null)}><option value="">Choose an area</option>{categories.map((category) => <option value={category.category_id} key={category.category_id}>{category.category_name}</option>)}</select></label>
+            <div className={`multi-select ${builderCategory ? "" : "disabled"}`}>
+              <span className="multi-select-label">Skills <small>Select multiple</small></span>
+              {!builderCategory && <div className="multi-placeholder">Choose a capability area first</div>}
+              {builderCategory && <div className="skill-options">{builderCategory.skills.map((skill) => {
+                const checked = requirements.some((item) => item.skill.skill_id === skill.skill_id);
+                return <label key={skill.skill_id}><input type="checkbox" checked={checked} onChange={() => toggleSkill(skill.skill_id)}/><span>{skill.skill_name}</span></label>;
+              })}</div>}
+            </div>
           </fieldset>
+          {requirements.length > 0 && <section className="selected-requirements"><div className="selected-heading"><strong>Selected skill filters</strong><button onClick={() => setRequirements([])}>Clear skills</button></div>{requirements.map((requirement) => <article key={requirement.skill.skill_id}><div><b>{requirement.skill.skill_name}</b><small>{requirement.categoryName}</small></div><label><span className="sr-only">Proficiency for {requirement.skill.skill_name}</span><select value={requirement.proficiencyRank ?? ""} onChange={(event) => setRequirementRank(requirement.skill.skill_id, event.target.value ? Number(event.target.value) : null)}><option value="">Any proficiency</option>{levels.map((level) => <option value={level.level_rank} key={level.proficiency_id}>{level.level_name}</option>)}</select></label><button className="remove-skill" onClick={() => toggleSkill(requirement.skill.skill_id)} aria-label={`Remove ${requirement.skill.skill_name}`}>×</button></article>)}</section>}
           {requirements.length > 1 && <fieldset className="match-choice"><legend>Candidates should match</legend><label><input type="radio" checked={mode === "all"} onChange={() => setMode("all")}/><span><b>Every selected skill</b><small>Best for a specific skill combination</small></span></label><label><input type="radio" checked={mode === "any"} onChange={() => setMode("any")}/><span><b>At least one selected skill</b><small>Best for a broader talent search</small></span></label></fieldset>}
           <div className="filter-note"><strong>Tip</strong><p>Leave proficiency as “Any” to find everyone with exposure to that skill. Their actual level appears in the result row.</p></div>
         </aside>
         <section className="results-panel">
           <div className="results-header"><div><span className="eyebrow">TALENT DIRECTORY</span><h1>{status === "ready" ? total : "—"} candidate{total === 1 ? "" : "s"}</h1><p>Explore profiles across PACE’s fresher capability pool.</p></div><div className="results-mark"><b>{requirements.length}</b><span>active skill<br/>filter{requirements.length === 1 ? "" : "s"}</span></div></div>
-          <div className="active-filters" aria-live="polite">
-            {categoryId && <button onClick={() => setCategoryId(null)}>{categories.find((item) => item.category_id === categoryId)?.category_name} ×</button>}
-            {requirements.map((requirement) => <button key={requirement.skill.skill_id} onClick={() => setRequirements((current) => current.filter((item) => item.skill.skill_id !== requirement.skill.skill_id))}>{requirement.skill.skill_name} · {levelName(requirement.proficiencyRank)} ×</button>)}
-            {!categoryId && requirements.length === 0 && <span>Showing the complete talent pool</span>}
-          </div>
+          <div className="directory-context" aria-live="polite"><span>{hasFilters ? "Results update automatically from the filters on the left." : "Showing the complete talent pool."}</span>{requirements.length > 0 && <b>{mode === "all" ? "Matching every selected skill" : "Matching at least one selected skill"}</b>}</div>
           <div className="candidate-list">
             {status === "loading" && Array.from({length: 5}).map((_, index) => <div className="skeleton" key={index}/>) }
             {status === "error" && <div className="state"><b>We couldn’t load the talent pool.</b><span>Check the API connection and try again.</span></div>}
